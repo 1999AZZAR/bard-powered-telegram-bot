@@ -34,6 +34,7 @@ bot/
   ├── bard.py
   ├── helper.py
   ├── main.py
+.env
 README.md
 requirements.txt
 ```

@@ -42,6 +42,39 @@ requirements.txt
 - `bot/helper.py`: Provides a helper function `is_user` to check if a user is authorized to use the bot.
 - `bot/main.py`: The main file that sets up the Telegram bot, handles incoming messages, and triggers the chatbot for generating responses.
 
+## Flowchart
+
+```mermaid
+graph TD
+st[Start]
+e[End]
+
+subgraph operation
+op1[Initialize Telegram bot]
+op2[operation: Load environment variables]
+op3[operation: Set up logging]
+op4[operation: Create Bard instance]
+op5[operation: Process user input]
+op6[operation: Send typing status]
+op7[operation: Generate response]
+op8[operation: Send response message]
+op9[operation: Check user authorization]
+op10[operation: Send not authorized message]
+op11[operation: Send start message]
+op12[operation: Reset chat history]
+end
+
+st --> op1 --> op2 --> op3 --> op4 --> op5 --> op6 --> op7 --> op8
+op5 -- yes --> op9
+op9 -- yes --> op11
+op9 -- no --> op10
+op11 --> op8 --> op5
+op5 -- no --> op12 --> op8 --> op5
+op10 --> op8 --> op5
+op8 --> op5
+op5 --> e
+```
+
 ## Usage
 
 1. Start the bot by running `python bot/main.py`.
@@ -60,10 +93,6 @@ You can customize the behavior and responses of the chatbot by modifying the cod
 ## Contribution
 
 Contributions to the project are welcome. If you encounter any issues or have suggestions for improvement, please submit an issue or a pull request to the repository.
-
-## License
-
-This project is licensed under the [MIT License](https://opensource.org/licenses/MIT). You are free to use, modify, and distribute the code as per the terms of the license.
 
 ## Acknowledgements
 

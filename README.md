@@ -1,6 +1,8 @@
 # bard-powered-telegram-bot
 
 [![CodeFactor](https://www.codefactor.io/repository/github/1999azzar/bard-powered-telegram-bot/badge)](https://www.codefactor.io/repository/github/1999azzar/bard-powered-telegram-bot)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/1999AZZAR/bard-powered-telegram-bot/blob/ayaka-mori/bard_telebot.ipynb)
+
 
 This repository contains code for a chatbot implemented in Python using the Telegram Bot API. The chatbot is designed to respond to user messages and provide assistance based on the input.
 

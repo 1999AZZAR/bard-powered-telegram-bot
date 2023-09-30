@@ -54,7 +54,7 @@ USER_ID</span>=&lt;your_user_id&gt;</article>
                 </li>
             </ul>
         </li>
-        <li>Run the chatbot by executing <code>python bot/main.py</code>.</li>
+        <li>Run the chatbot by executing <code>python main.py</code>.</li>
     </ol>
     
     <h2 id="file-structure">File Structure</h2>
@@ -63,20 +63,15 @@ USER_ID</span>=&lt;your_user_id&gt;</article>
     
     <pre>
         <code>
-            bot/
-            ├── bard<span class="hljs-selector-class">.py</span>
-            ├── helper<span class="hljs-selector-class">.py</span>
-            ├── main<span class="hljs-selector-class">.py</span>
-            <span class="hljs-selector-class">.env</span>
-            README<span class="hljs-selector-class">.md</span>
+            main.py
+            .env
+            README.md
             requirements.txt
         </code>
     </pre>
     
     <ul>
-        <li><code>bot/bard.py</code>: Contains the implementation of the <a href="https://github.com/acheong08/Bard"><code>Bard</code></a> class, which initializes the chatbot and processes user input to generate responses.</li>
-        <li><code>bot/helper.py</code>: Provides a helper function <code>is_user</code> to check if a user is authorized to use the bot.</li>
-        <li><code>bot/main.py</code>: The main file that sets up the Telegram bot, handles incoming messages, and triggers the chatbot for generating responses.</li>
+        <li><code>main.py</code>: The main file that contains the implementation of the chatbot, sets up the Telegram bot, handles incoming messages, and triggers the chatbot for generating responses.</li>
     </ul>
     
     <h2 id="flowchart">Flowchart</h2>
@@ -115,7 +110,7 @@ USER_ID</span>=&lt;your_user_id&gt;</article>
     <h2 id="usage">Usage</h2>
     
     <ol>
-        <li>Start the bot by running <code>python bot/main.py</code>.</li>
+        <li>Start the bot by running <code>python main.py</code>.</li>
         <li>Open the Telegram app and search for your bot using the username you assigned to it during creation.</li>
         <li>Start a chat with the bot and interact with it by sending messages.</li>
         <li>The bot will process your input and provide a response based on the implemented logic.</li>
@@ -127,7 +122,7 @@ USER_ID</span>=&lt;your_user_id&gt;</article>
 
     <h2 id="customization">Customization</h2>
     
-    <p>You can customize the behavior and responses of the chatbot by modifying the code in <code>bot/bard.py</code>. You can add new functionalities or change the logic to suit your requirements.</p>
+    <p>You can customize the behavior and responses of the chatbot by modifying the code in <code>main.py</code>. You can add new functionalities or change the logic to suit your requirements.</p>
 
     <h2 id="contribution">Contribution</h2>
 

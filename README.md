@@ -32,7 +32,7 @@ To run the chatbot, ensure you have the following:
      Secure_1PSIDTS="<__secure_1PSIDTS>"
      
      # telegram user id obtained using @userinfobot
-     USER_ID="<your_user_id>" # comma for separation
+     USER_ID='*' # comma for separation, '*' to enable all user
      ```
 
      Replace `<your_bard_token>` with the token for your Bard chatbot and `<your_telegram_bot_token>` with the token for your Telegram bot. `<your_user_id>` should be replaced with your Telegram user ID.

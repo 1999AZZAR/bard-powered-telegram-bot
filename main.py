@@ -1,21 +1,22 @@
 import os
 import logging
 import asyncio
-import re
 import requests
 import telegram
 import sys
+import re
 
 from dotenv import load_dotenv
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram import ChatAction
 from Bard import Chatbot
 
-load_dotenv('/media/azzar/Betha/Download/project/telegram bot/yuna/yuna v1/chat mode/bot/.env')
+load_dotenv()
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-
 bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+updater = Updater(bot_token, use_context=True)
+dispatcher = updater.dispatcher
 MAX_MESSAGE_LENGTH = 2000
 
 class AnswerBot:
@@ -37,30 +38,16 @@ class AnswerBot:
 
 bard = AnswerBot()
 
-def is_user(self, user_id):
-    allowed_users = os.getenv('USER_ID').split(',')
-    return '*' in allowed_users or str(user_id) in allowed_users
-
-async def process_input(update, context):
-    user_input = update.message.text
-    print(f"Sending message: {user_input}")
-    translated_input = translate_input(user_input)  # Translate user input
-    user_input = translated_input[0]
-    await send_chat_action(update, context, ChatAction.TYPING)
-    response = await asyncio.to_thread(bard.process_input, user_input)
-    translated_output = translate_output(response, f"{translated_input[1]}")  # Translate response
-    send_message(update, context, translated_output)
-
 async def process_input(update, context):
     user_id = update.message.from_user.id
     if is_user(user_id):
         user_input = update.message.text
         print(f"Sending message: {user_input}")
-        translated_input = translate_input(user_input)  # Translate user input
+        translated_input = translate_input(user_input) 
         user_input = translated_input[0]
         await send_chat_action(update, context, ChatAction.TYPING)
         response = await asyncio.to_thread(bard.process_input, user_input)
-        translated_output = translate_output(response, f"{translated_input[1]}")  # Translate response
+        translated_output = translate_output(response, f"{translated_input[1]}") 
         message = translated_output
     else:
         message = 'Sorry, you are not authorized to use this bot.'
@@ -74,7 +61,7 @@ def send_message(update, context, message):
 
     for chunk in chunks:
         print(f"Got response: {chunk}")
-        chunk = re.sub(r'\bbard\b', 'ayaka mori', chunk, flags=re.IGNORECASE)
+        chunk = re.sub(r'\bbard\b', 'Ayaka Mori', chunk, flags=re.IGNORECASE)
 
         try:
             context.bot.send_message(chat_id=update.effective_chat.id, text=chunk, parse_mode="MARKDOWN")
@@ -105,10 +92,10 @@ def translate_input(user_input):
         user_lang = request_result[0][1]
         return translation, user_lang
     except:
-        return user_input, 'en'  # Default to returning the original response if translation fails
+        return user_input, 'en'
 
 def translate_output(response, user_lang):
-    response = re.sub(r"\bI am a large language model\b", "I am ayaka mori", response, flags=re.IGNORECASE)
+    response = re.sub(r"\bI am a large language model\b", "my name is ayaka mori", response, flags=re.IGNORECASE)
     url = f"https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=en&tl={user_lang}&q={response}"
     headers = {
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36'
@@ -119,17 +106,18 @@ def translate_output(response, user_lang):
         translation = request_result[0]
         return translation
     except:
-        return response  # Default to returning the original response if translation fails
+        return response
 
-if __name__ == "__main__":
-    updater = Updater(bot_token, use_context=True)
-    dispatcher = updater.dispatcher
+def is_user(self, user_id):
+    allowed_users = os.getenv('USER_ID').split(',')
+    return '*' in allowed_users or str(user_id) in allowed_users
 
-    dispatcher.add_handler(CommandHandler("help", help_command))
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, lambda update, context: asyncio.run(process_input(update, context))))
+dispatcher.add_handler(CommandHandler("help", help_command))
+dispatcher.add_handler(CommandHandler("start", start))
+dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, lambda update, context: asyncio.run(process_input(update, context))))
 
-    updater.start_polling()
-    logging.info("The bot has started")
-    logging.info("The bot is listening for messages")
-    updater.idle()
+updater.start_polling()
+logging.info("The bot has started")
+logging.info("The bot is listening for messages")
+updater.idle()
+

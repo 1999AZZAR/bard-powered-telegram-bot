@@ -7,11 +7,13 @@ import sys
 import re
 
 from dotenv import load_dotenv
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-from telegram import ChatAction
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
+from telegram import ChatAction, InlineKeyboardButton, InlineKeyboardMarkup
+from pydub import AudioSegment
+from gtts import gTTS
 from Bard import Chatbot
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 
 # Configure logging
@@ -25,7 +27,10 @@ updater = Updater(bot_token, use_context=True)
 dispatcher = updater.dispatcher
 
 # Define the maximum message length
-MAX_MESSAGE_LENGTH = 4096
+MAX_MESSAGE_LENGTH = 2048
+
+# Define a dictionary to store the latest message for each user
+message = {}
 
 # Class for the AnswerBot
 class AnswerBot:
@@ -56,36 +61,70 @@ def is_user(user_id):
 async def process_input(update, context):
     user_id = update.message.from_user.id
     user_input = update.message.text
-    await send_chat_action(update, context, ChatAction.TYPING)
+    send_chat_action(update, context, ChatAction.TYPING)
     
     if is_user(user_id):
         translated_input = translate_input(user_input)
         user_input = translated_input[0]
         logging.info(f"Sending input: {user_input}")
         response = await asyncio.to_thread(bard.process_input, user_input)
-        response = translate_output(response, f"{translated_input[1]}")
+        translated_response = translate_output(response, translated_input[1])
+        message[user_id] = translated_response  # Save the latest message in the dictionary
     else:
-        response = 'Sorry, you are not authorized to use this bot.'
+        message[user_id] = 'Sorry, you are not authorized to use this service.'
     
-    send_message(update, context, response)
+    send_message(update, context, user_id)  # Pass the user_id to send_message
 
 # Function to send a chat action
-async def send_chat_action(update, context, action):
+def send_chat_action(update, context, action):
     context.bot.send_chat_action(chat_id=update.effective_chat.id, action=action)
 
 # Function to send a message, split into chunks if too long
-def send_message(update, context, message):
-    message = re.sub(r'\bbard\b', 'Ayaka Mori', message, flags=re.IGNORECASE)
-    chunks = [message[i:i + MAX_MESSAGE_LENGTH] for i in range(0, len(message), MAX_MESSAGE_LENGTH)]
-    
-    for chunk in chunks:
-        logging.info(f"Sending response: {chunk}")
-        try:
-            context.bot.send_message(chat_id=update.effective_chat.id, text=chunk, parse_mode="MARKDOWN")
-        except telegram.error.BadRequest:
-            context.bot.send_message(chat_id=update.effective_chat.id, text=chunk)
 
-# Function to translate user input to english
+# Function to send a message, split into chunks if too long
+def send_message(update, context, user_id):
+    send_chat_action(update, context, ChatAction.TYPING)
+    
+    try:
+        if user_id in message:
+            response = message[user_id]
+            if response is not None:
+                res = response[0]
+                chunks = [res[i:i + MAX_MESSAGE_LENGTH] for i in range(0, len(res), MAX_MESSAGE_LENGTH)]
+                for index, chunk in enumerate(chunks):
+                    if index == len(chunks) - 1:
+                        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🔊 TTS", callback_data="tts")]])
+                    else:
+                        reply_markup = None
+                    logging.info(f"Sending response: {chunk}")
+                    try:
+                        context.bot.send_message(chat_id=update.effective_chat.id, text=chunk, parse_mode="MARKDOWN", reply_markup=reply_markup)
+                    except telegram.error.BadRequest:
+                        context.bot.send_message(chat_id=update.effective_chat.id, text=chunk, reply_markup=reply_markup)
+            else:
+                message[user_id] = "There has been no response at the moment."
+                send_message(update, context, user_id)
+        else:
+            message[user_id] = "There has been no response at the moment."
+            send_message(update, context, user_id)
+    except Exception as e:
+        message[user_id] = "I'm sorry, but an unexpected problem has occurred. If you wish, you can contact us later."
+        send_message(update, context, user_id)
+    
+    # Function to handle the TTS callback
+    def tts_callback(update, context):
+        send_chat_action(update, context, ChatAction.RECORD_AUDIO)
+        query = update.callback_query
+        tts(user_id)
+        send_chat_action(update, context, ChatAction.UPLOAD_AUDIO)
+        context.bot.send_voice(chat_id=query.message.chat_id, voice=open('voice.mp3', 'rb'))
+        os.remove('voice.mp3')
+
+    # Add a callback handler for the "tts" button
+    dispatcher.add_handler(CallbackQueryHandler(tts_callback, pattern='^tts$'))
+
+
+# Function to translate user input to English
 def translate_input(user_input):
     url = f"https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=en&q={user_input}"
     headers = {
@@ -94,15 +133,15 @@ def translate_input(user_input):
 
     try:
         request_result = requests.get(url, headers=headers).json()
-        translation = request_result[0][0]
+        user_input = request_result[0][0]
         user_lang = request_result[0][1]
-        return translation, user_lang
-    except:
-        return user_input, 'en'  
+        return user_input, user_lang
+    except Exception as e:
+        return user_input, 'en'
 
-# Function to translate bard output to the language of the user
+# Function to translate Bard output to the language of the user
 def translate_output(response, user_lang):
-    response = re.sub(r"\bI am a large language model\b", "I am ayaka mori", response, flags=re.IGNORECASE)
+    response = re.sub(r"\bI am a large language model\b", "My Name Is Ayaka Mori", response, flags=re.IGNORECASE)
     url = f"https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=en&tl={user_lang}&q={response}"
     headers = {
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36'
@@ -110,14 +149,42 @@ def translate_output(response, user_lang):
 
     try:
         request_result = requests.get(url, headers=headers).json()
-        translation = request_result[0]
-        return translation
-    except:
-        return response  
+        response = request_result[0]
+        return response, user_lang
+    except Exception as e:
+        return response, user_lang
+
+# Function to handle the TTS
+def tts(user_id):
+    latest_message = message[user_id]
+    if latest_message[0] is not None:
+        if latest_message[1] is not None:
+            if latest_message[1] != 'en':
+                user_lang = latest_message[1]
+                text = latest_message[0]
+                tts = gTTS(text=text, lang=user_lang, slow=False)
+            else:
+                text = latest_message[0]
+                tts = gTTS(text=text, lang='en', tld='co.uk', slow=False)
+        else:
+            text = latest_message[0]
+            tts = gTTS(text=text,lang='en', tld='co.uk', slow=False)
+    if latest_message[0] is None:
+        text = "There has been no response at the moment."
+        tts = gTTS(text=text, lang='en', tld='co.uk', slow=False)
+    tts.save('response.mp3')
+    audio = AudioSegment.from_file("response.mp3", format="mp3")
+    speedup = audio.speedup(playback_speed=1.22)
+    speedup.export("voice.mp3", format="mp3")
+    os.remove('response.mp3')
 
 # Function to handle the /start command
 def start(update, context):
-    message = 'Hi! my name is Ayaka Mori, your personal AI-powered chatbot. How can I assist you today?'
+    user_id = update.message.from_user.id
+    if is_user(user_id):
+        message = 'Hi! My name is Ayaka Mori, your personal AI-powered chatbot. How can I assist you today?'
+    else:
+        message = 'Sorry, you are not authorized to use this service.'
     send_message(update, context, message)
 
 # Add command and message handlers to the dispatcher

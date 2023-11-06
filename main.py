@@ -66,20 +66,18 @@ async def process_input(update, context):
     if is_user(user_id):
         translated_input = translate_input(user_input)
         user_input = translated_input[0]
-        logging.info(f"Sending input: {user_input}")
+        logging.info(f"Sending input from {update.message.from_user.first_name}: {user_input}")
         response = await asyncio.to_thread(bard.process_input, user_input)
         translated_response = translate_output(response, translated_input[1])
         message[user_id] = translated_response  # Save the latest message in the dictionary
     else:
-        message[user_id] = 'Sorry, you are not authorized to use this service.'
+        message[user_id] = ["Sorry, you are not authorized to use this service."]
     
     send_message(update, context, user_id)  # Pass the user_id to send_message
 
 # Function to send a chat action
 def send_chat_action(update, context, action):
     context.bot.send_chat_action(chat_id=update.effective_chat.id, action=action)
-
-# Function to send a message, split into chunks if too long
 
 # Function to send a message, split into chunks if too long
 def send_message(update, context, user_id):
@@ -96,19 +94,19 @@ def send_message(update, context, user_id):
                         reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🔊 TTS", callback_data="tts")]])
                     else:
                         reply_markup = None
-                    logging.info(f"Sending response: {chunk}")
+                    logging.info(f"Sending response to {update.message.from_user.first_name}: {chunk}")
                     try:
                         context.bot.send_message(chat_id=update.effective_chat.id, text=chunk, parse_mode="MARKDOWN", reply_markup=reply_markup)
                     except telegram.error.BadRequest:
                         context.bot.send_message(chat_id=update.effective_chat.id, text=chunk, reply_markup=reply_markup)
             else:
-                message[user_id] = "There has been no response at the moment."
+                message[user_id] = ["There has been no response at the moment."]
                 send_message(update, context, user_id)
         else:
-            message[user_id] = "There has been no response at the moment."
+            message[user_id] = ["There has been no response at the moment."]
             send_message(update, context, user_id)
     except Exception as e:
-        message[user_id] = "I'm sorry, but an unexpected problem has occurred. If you wish, you can contact us later."
+        message[user_id] = ["I'm sorry, but an unexpected problem has occurred. If you wish, you can contact us later."]
         send_message(update, context, user_id)
     
     # Function to handle the TTS callback
@@ -119,6 +117,7 @@ def send_message(update, context, user_id):
         send_chat_action(update, context, ChatAction.UPLOAD_AUDIO)
         context.bot.send_voice(chat_id=query.message.chat_id, voice=open('voice.mp3', 'rb'))
         os.remove('voice.mp3')
+        logging.info(f"tts send")
 
     # Add a callback handler for the "tts" button
     dispatcher.add_handler(CallbackQueryHandler(tts_callback, pattern='^tts$'))
@@ -141,7 +140,7 @@ def translate_input(user_input):
 
 # Function to translate Bard output to the language of the user
 def translate_output(response, user_lang):
-    response = re.sub(r"\bI am a large language model\b", "My Name Is Ayaka Mori", response, flags=re.IGNORECASE)
+    response = re.sub(r"\bBard\b", "Ayaka Mori", response, flags=re.IGNORECASE)
     url = f"https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=en&tl={user_lang}&q={response}"
     headers = {
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36'
@@ -157,6 +156,7 @@ def translate_output(response, user_lang):
 # Function to handle the TTS
 def tts(user_id):
     latest_message = message[user_id]
+    logging.info(f"Generating tts")
     if latest_message[0] is not None:
         if latest_message[1] is not None:
             if latest_message[1] != 'en':
@@ -174,18 +174,19 @@ def tts(user_id):
         tts = gTTS(text=text, lang='en', tld='co.uk', slow=False)
     tts.save('response.mp3')
     audio = AudioSegment.from_file("response.mp3", format="mp3")
-    speedup = audio.speedup(playback_speed=1.22)
-    speedup.export("voice.mp3", format="mp3")
+    audio = audio.speedup(playback_speed=1.22)
+    audio.export("voice.mp3", format="mp3")
     os.remove('response.mp3')
+    logging.info(f"tts done processing")
 
 # Function to handle the /start command
 def start(update, context):
     user_id = update.message.from_user.id
     if is_user(user_id):
-        message = 'Hi! My name is Ayaka Mori, your personal AI-powered chatbot. How can I assist you today?'
+        message[user_id] = [f"Hi {update.message.from_user.first_name}, My name is Ayaka Mori, your personal AI-powered chatbot. \nHow can I assist you today?"]
     else:
-        message = 'Sorry, you are not authorized to use this service.'
-    send_message(update, context, message)
+        message[user_id] = ["Sorry, you are not authorized to use this service."]
+    send_message(update, context, user_id)
 
 # Add command and message handlers to the dispatcher
 dispatcher.add_handler(CommandHandler("start", start))
